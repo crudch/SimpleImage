@@ -124,7 +124,7 @@ class SimpleImage {
   public function fromFile($file) {
     // Check if the file exists and is readable. We're using fopen() instead of file_exists()
     // because not all URL wrappers support the latter.
-    $handle = @fopen($file, 'r');
+    $handle = @fopen($file, 'rb');
     if($handle === false) {
       throw new \Exception("File not found: $file", self::ERR_FILE_NOT_FOUND);
     }
