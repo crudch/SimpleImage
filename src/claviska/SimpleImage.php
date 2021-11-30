@@ -235,7 +235,7 @@ class SimpleImage {
 
     // Ensure quality is a valid integer
     if($quality === null) $quality = 100;
-    $quality = self::keepWithin((int) $quality, 0, 100);
+    $quality = (int)self::keepWithin((int) $quality, 0, 100);
 
     // Capture output
     ob_start();
@@ -277,17 +277,16 @@ class SimpleImage {
           );
         }
         imageinterlace($this->image, true);
-        imagebmp($this->image, null, $quality);
+        imagebmp($this->image, null, (bool)$quality);
         break;
       default:
         throw new \Exception('Unsupported format: ' . $mimeType, self::ERR_UNSUPPORTED_FORMAT);
     }
 
     // Stop capturing
-    $data = ob_get_contents();
-    ob_end_clean();
+    $data = ob_get_clean();
 
-    return [
+      return [
       'data' => $data,
       'mimeType' => $mimeType
     ];
@@ -490,7 +489,7 @@ class SimpleImage {
       imagefilter($srcIm, IMG_FILTER_COLORIZE, 0, 0, 0, 127 * ((100 - $pct) / 100));
     }
 
-    imagecopy($dstIm, $srcIm, $dstX, $dstY, $srcX, $srcY, $srcW, $srcH);
+    imagecopy($dstIm, $srcIm, (int)$dstX, (int)$dstY, (int)$srcX, (int)$srcY, (int)$srcW, (int)$srcH);
 
     return true;
   }
@@ -591,8 +590,8 @@ class SimpleImage {
     $y2 = self::keepWithin($y2, 0, $this->getHeight());
 
     // Avoid using native imagecrop() because of a bug with PNG transparency
-    $dstW = abs($x2 - $x1);
-    $dstH = abs($y2 - $y1);
+    $dstW = (int)abs($x2 - $x1);
+    $dstH = (int)abs($y2 - $y1);
     $newImage = imagecreatetruecolor($dstW, $dstH);
     $transparentColor = imagecolorallocatealpha($newImage, 0, 0, 0, 127);
     imagecolortransparent($newImage, $transparentColor);
@@ -602,7 +601,7 @@ class SimpleImage {
     imagecopyresampled(
       $newImage,
       $this->image,
-      0, 0, min($x1, $x2), min($y1, $y2),
+      0, 0, (int)min($x1, $x2), (int)min($y1, $y2),
       $dstW,
       $dstH,
       $dstW,
@@ -712,7 +711,7 @@ class SimpleImage {
    * @return \claviska\SimpleImage
    */
   public function maxColors($max, $dither = true) {
-    imagetruecolortopalette($this->image, $dither, max(1, $max));
+    imagetruecolortopalette($this->image, $dither, (int)max(1, $max));
 
     return $this;
   }
@@ -799,6 +798,9 @@ class SimpleImage {
       return $this;
     }
 
+    $width = (int)$width;
+    $height = (int)$height;
+
     // We can't use imagescale because it doesn't seem to preserve transparency properly. The
     // workaround is to create a new truecolor image, allocate a transparent color, and copy the
     // image over to it using imagecopyresampled.
@@ -853,7 +855,7 @@ class SimpleImage {
     $this->image = imagerotate(
       $this->image,
       -(self::keepWithin($angle, -360, 360)),
-      $backgroundColor
+      (int)$backgroundColor
     );
     imagecolortransparent($this->image, imagecolorallocatealpha($this->image, 0, 0, 0, 127));
 
@@ -1110,7 +1112,7 @@ class SimpleImage {
       $align = 'top left';
     }
 
-    list($lines, $isLastLine, $lastLineHeight) = self::textSeparateLines($text, $fontFile, $fontSize, $maxWidth);
+    [$lines, $isLastLine, $lastLineHeight] = $this->textSeparateLines($text, $fontFile, $fontSize, $maxWidth);
 
     $maxHeight = (count($lines) - 1) * ($fontSizePx * 1.2 + $leading) + $lastLineHeight;
 
@@ -1204,7 +1206,7 @@ class SimpleImage {
   * @return array
   */
   private function textSeparateLines($text, $fontFile, $fontSize, $maxWidth) {
-    $words = self::textSeparateWords($text);
+    $words = $this->textSeparateWords($text);
     $countWords = count($words) - 1;
     $lines[0] = '';
     $lineKey = 0;
@@ -1363,10 +1365,10 @@ class SimpleImage {
 
     // Draw an arc
     if($thickness === 'filled') {
-      imagefilledarc($this->image, $x, $y, $width, $height, $start, $end, $tempColor, IMG_ARC_PIE);
+      imagefilledarc($this->image, (int)$x, (int)$y, (int)$width, (int)$height, (int)$start, (int)$end, $tempColor, IMG_ARC_PIE);
 
     } else if ($thickness === 1) {
-      imagearc($this->image, $x, $y, $width, $height, $start, $end, $tempColor);
+      imagearc($this->image, (int)$x, (int)$y, (int)$width, (int)$height, (int)$start, (int)$end, $tempColor);
 
     } else {
       // New temp image
@@ -1375,12 +1377,12 @@ class SimpleImage {
 
       // Draw a large ellipse filled with $color (+$thickness pixels)
       $tempColor = $tempImage->allocateColor($color);
-      imagefilledarc($tempImage->image, $x, $y, $width+$thickness, $height+$thickness, $start, $end, $tempColor, IMG_ARC_PIE);
+      imagefilledarc($tempImage->image, (int)$x, (int)$y, $width+$thickness, $height+$thickness, (int)$start, (int)$end, $tempColor, IMG_ARC_PIE);
 
       // Draw a smaller ellipse filled with red|blue (-$thickness pixels)
       $tempColor = (self::normalizeColor($color)['red'] == 255) ? 'blue' : 'red';
       $tempColor = $tempImage->allocateColor($tempColor);
-      imagefilledarc($tempImage->image, $x, $y, $width-$thickness, $height-$thickness, $start, $end, $tempColor, IMG_ARC_PIE);
+      imagefilledarc($tempImage->image, (int)$x, (int)$y, $width-$thickness, $height-$thickness, (int)$start, (int)$end, $tempColor, IMG_ARC_PIE);
 
       // Replace the color of the smaller ellipse with 'transparent'
       $tempImage->excludeInsideColor($x, $y, $color);
@@ -1407,7 +1409,7 @@ class SimpleImage {
 
     $color = $this->allocateColor($color);
     imagesetthickness($this->image, $thickness*2);
-    imagerectangle($this->image, $x1, $y1, $x2, $y2, $color);
+    imagerectangle($this->image, $x1, $y1, $x2, $y2, (int)$color);
 
     return $this;
   }
@@ -1422,7 +1424,7 @@ class SimpleImage {
    */
   public function dot($x, $y, $color) {
     $color = $this->allocateColor($color);
-    imagesetpixel($this->image, $x, $y, $color);
+    imagesetpixel($this->image, (int)$x, (int)$y, (int)$color);
 
     return $this;
   }
@@ -1445,10 +1447,10 @@ class SimpleImage {
 
     // Draw an ellipse
     if($thickness === 'filled') {
-      imagefilledellipse($this->image, $x, $y, $width, $height, $tempColor);
+      imagefilledellipse($this->image, (int)$x, $y, (int)$width, (int)$height, $tempColor);
 
     } else if ($thickness === 1) {
-      imageellipse($this->image, $x, $y, $width, $height, $tempColor);
+      imageellipse($this->image, (int)$x, (int)$y, (int)$width, (int)$height, $tempColor);
 
     } else {
       // New temp image
@@ -1457,12 +1459,12 @@ class SimpleImage {
 
       // Draw a large ellipse filled with $color (+$thickness pixels)
       $tempColor = $tempImage->allocateColor($color);
-      imagefilledellipse($tempImage->image, $x, $y, $width+$thickness, $height+$thickness, $tempColor);
+      imagefilledellipse($tempImage->image, (int)$x, (int)$y, $width+$thickness, $height+$thickness, $tempColor);
 
       // Draw a smaller ellipse filled with red|blue (-$thickness pixels)
       $tempColor = (self::normalizeColor($color)['red'] == 255) ? 'blue' : 'red';
       $tempColor = $tempImage->allocateColor($tempColor);
-      imagefilledellipse($tempImage->image, $x, $y, $width-$thickness, $height-$thickness, $tempColor);
+      imagefilledellipse($tempImage->image, (int)$x, (int)$y, $width-$thickness, $height-$thickness, $tempColor);
 
       // Replace the color of the smaller ellipse with 'transparent'
       $tempImage->excludeInsideColor($x, $y, $color);
@@ -1486,7 +1488,7 @@ class SimpleImage {
 
     // Now flood it with the appropriate color
     $color = $this->allocateColor($color);
-    imagefill($this->image, 0, 0, $color);
+    imagefill($this->image, 0, 0, (int)$color);
 
     return $this;
   }
@@ -1507,8 +1509,8 @@ class SimpleImage {
     $color = $this->allocateColor($color);
 
     // Draw a line
-    imagesetthickness($this->image, $thickness);
-    imageline($this->image, $x1, $y1, $x2, $y2, $color);
+    imagesetthickness($this->image, (int)$thickness);
+    imageline($this->image, (int)$x1, (int)$y1, (int)$x2, (int)$y2, (int)$color);
 
     return $this;
   }
@@ -1569,10 +1571,10 @@ class SimpleImage {
     // Draw a rectangle
     if($thickness === 'filled') {
       imagesetthickness($this->image, 1);
-      imagefilledrectangle($this->image, $x1, $y1, $x2, $y2, $color);
+      imagefilledrectangle($this->image, (int)$x1, (int)$y1, (int)$x2, (int)$y2, (int)$color);
     } else {
       imagesetthickness($this->image, $thickness);
-      imagerectangle($this->image, $x1, $y1, $x2, $y2, $color);
+      imagerectangle($this->image, (int)$x1, (int)$y1, (int)$x2, (int)$y2, (int)$color);
     }
 
     return $this;
@@ -1654,7 +1656,7 @@ class SimpleImage {
   private function excludeInsideColor($x, $y, $borderColor) {
     $borderColor = $this->allocateColor($borderColor);
     $transparent = $this->allocateColor('transparent');
-    imagefilltoborder($this->image, $x, $y, $borderColor, $transparent);
+    imagefilltoborder($this->image, (int)$x, (int)$y, (int)$borderColor, (int)$transparent);
     return $this;
   }
 
@@ -1882,9 +1884,9 @@ class SimpleImage {
     // Was this color already allocated?
     $index = imagecolorexactalpha(
       $this->image,
-      $color['red'],
-      $color['green'],
-      $color['blue'],
+      (int)$color['red'],
+      (int)$color['green'],
+      (int)$color['blue'],
       127 - ($color['alpha'] * 127)
     );
     if($index > -1) {
@@ -1895,9 +1897,9 @@ class SimpleImage {
     // Allocate a new color index
     return imagecolorallocatealpha(
       $this->image,
-      $color['red'],
-      $color['green'],
-      $color['blue'],
+      (int)$color['red'],
+      (int)$color['green'],
+      (int)$color['blue'],
       127 - ($color['alpha'] * 127)
     );
   }
@@ -1996,7 +1998,7 @@ class SimpleImage {
     }
 
     // Get the color of this pixel and convert it to RGBA
-    $color = imagecolorat($this->image, $x, $y);
+    $color = imagecolorat($this->image, (int)$x, (int)$y);
     $rgba = imagecolorsforindex($this->image, $color);
     $rgba['alpha'] = 127 - ($color >> 24) & 0xFF;
 
